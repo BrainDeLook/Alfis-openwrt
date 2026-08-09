@@ -17,8 +17,11 @@ The main Alfis DNS server package that provides blockchain-based domain resoluti
 - Configurable via UCI
 
 **Dependencies:**
-- Rust compiler (build-time)
 - ca-certificates
+
+The package uses the official Alfis 0.10.0 headless musl binaries and verifies
+their upstream SHA-256 checksums before packaging. Supported package
+architectures are x86_64, aarch64, and ARMv7 hard-float.
 
 ### luci-app-alfis
 Web interface for managing and monitoring the Alfis DNS service through LuCI.
@@ -35,12 +38,6 @@ Web interface for managing and monitoring the Alfis DNS service through LuCI.
 - luci-base
 
 ## Building
-
-First, compile the required toolchain and tools:
-```bash
-make toolchain/compile V=s
-make tools/libdeflate/compile V=s
-```
 
 ### Build both packages:
 ```bash
@@ -65,6 +62,12 @@ make package/luci-app-alfis/compile V=s
 3. Configure via UCI or LuCI web interface
 4. Enable and start the service: `/etc/init.d/alfis enable && /etc/init.d/alfis start`
 
+The blockchain database and key files are stored in `/opt/alfis` by default.
+This directory survives service and router restarts and is listed in
+`/lib/upgrade/keep.d/alfis` for sysupgrade backups. The location can be changed
+with the `data_dir` UCI/LuCI option to persistent storage under `/opt`, `/mnt`,
+`/srv`, or `/var/lib`.
+
 ## Configuration
 
 ### UCI Configuration (`/etc/config/alfis`):
@@ -78,14 +81,15 @@ make package/luci-app-alfis/compile V=s
 
 ### File Locations:
 - Configuration: `/etc/alfis/alfis.toml`
-- Database: `/var/lib/alfis/`
+- Database and keys: `/opt/alfis/` (configurable)
 - Logs: System journal/syslog
 
 ## Source
 
 The packages download and build Alfis from: https://github.com/Revertron/Alfis
 
-Source code is downloaded to `/tmp` during build process and cleaned up automatically.
+Official release binaries are downloaded from the Alfis v0.10.0 release and
+packaged by the OpenWrt 25.12.5 SDK.
 
 ## Maintainer
 

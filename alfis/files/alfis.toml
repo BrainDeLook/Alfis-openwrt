@@ -14,7 +14,7 @@ listen = "[::]:4244"
 # Set true if you want your IP to participate in peer-exchange, or false otherwise
 public = true
 # Allow connections to/from Yggdrasil only (https://yggdrasil-network.github.io)
-yggdrasil_only = true
+yggdrasil_only = false
 
 # DNS resolver options
 [dns]
@@ -22,6 +22,10 @@ yggdrasil_only = true
 listen = "127.0.0.1:5353"
 # How many threads to spawn by DNS server
 threads = 4
+# Bound the in-memory DNS cache for router-class devices.
+cache_memory_limit_mb = 32
+# Randomize query-name case to improve cache-poisoning resistance.
+enable_0x20 = true
 # AdGuard DNS servers to filter ads and trackers
 forwarders = ["https://dns.adguard.com/dns-query"]
 #forwarders = ["94.140.14.14:53", "94.140.15.15:53"]

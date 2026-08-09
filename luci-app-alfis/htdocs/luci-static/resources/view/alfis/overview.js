@@ -17,12 +17,10 @@ function getServiceStatus() {
 	return L.resolveDefault(callServiceList('alfis'), {}).then(function(res) {
 		var isRunning = false;
 		try {
-			console.log('Service list response:', res);
 			// Check if alfis service exists and has running instances
 			if (res && res['alfis'] && res['alfis']['instances']) {
 				// Try to find any running instance
 				for (var instance in res['alfis']['instances']) {
-					console.log('Checking instance:', instance, res['alfis']['instances'][instance]);
 					if (res['alfis']['instances'][instance]['running']) {
 						isRunning = true;
 						break;
@@ -30,12 +28,9 @@ function getServiceStatus() {
 				}
 			}
 		} catch(e) {
-			console.log('Error checking alfis service status:', e);
 		}
-		console.log('Final running status:', isRunning);
 		return isRunning;
 	}).catch(function(err) {
-		console.log('Service status call failed:', err);
 		// If service status call fails, try alternative method
 		return fs.exec('/etc/init.d/alfis', ['status']).then(function(result) {
 			// If exit code is 0, service is running
@@ -212,7 +207,7 @@ return view.extend({
 			tomlConfig: tomlConfig
 		};
 		
-		var m, s, o;
+		var m, s, o, enabledOption;
 
 		m = new form.Map('alfis', _('Alfis DNS'), _('Configure the Alternative Free Identity System DNS server'));
 
@@ -222,11 +217,17 @@ return view.extend({
 		s.addremove = false;
 
 		// Create a two-column layout for Enable and Status
-		o = s.option(form.Flag, 'enabled', _('Enable'), _('Enable Alfis DNS service'));
+		enabledOption = s.option(form.Flag, 'enabled', _('Enable'), _('Enable Alfis DNS service'));
+		enabledOption.rmempty = false;
+
+		o = s.option(form.Value, 'data_dir', _('Persistent data directory'),
+			_('Directory for blockchain.db and key files. Use persistent storage such as /opt or /mnt.'));
+		o.default = '/opt/alfis';
+		o.placeholder = '/opt/alfis';
 		o.rmempty = false;
 		
 		// Add change handler to sync with system service enable/disable
-		o.write = function(section_id, value) {
+		enabledOption.write = function(section_id, value) {
 			// Call original write first
 			form.Flag.prototype.write.call(this, section_id, value);
 			
@@ -244,10 +245,9 @@ return view.extend({
 
 		o = s.option(form.DummyValue, '_status', _('Status'));
 		o.cfgvalue = function() {
-			console.log('Rendering status, isRunning:', isRunning);
 			return isRunning ? 
-				'<span style="color:green; font-weight:bold;">●</span> ' + _('Running') :
-				'<span style="color:red; font-weight:bold;">●</span> ' + _('Not running');
+				'<span style="color:green; font-weight:bold;">&#9679;</span> ' + _('Running') :
+				'<span style="color:red; font-weight:bold;">&#9679;</span> ' + _('Not running');
 		};
 		o.rawhtml = true;
 
@@ -282,7 +282,7 @@ return view.extend({
 
 		o = s.option(form.Flag, 'net_yggdrasil_only', _('Yggdrasil Only'), 
 			_('Allow connections to/from Yggdrasil only'));
-		o.default = ((tomlConfig.net && tomlConfig.net.yggdrasil_only !== undefined) ? tomlConfig.net.yggdrasil_only : true) ? '1' : '0';
+		o.default = ((tomlConfig.net && tomlConfig.net.yggdrasil_only !== undefined) ? tomlConfig.net.yggdrasil_only : false) ? '1' : '0';
 		o.rmempty = false;
 
 		o = s.option(form.TextValue, 'net_peers', _('Bootstrap Peers'), 
@@ -304,6 +304,18 @@ return view.extend({
 		o.datatype = 'uinteger';
 		o.default = ((tomlConfig.dns && tomlConfig.dns.threads) || 4).toString();
 		o.placeholder = '4';
+		o.rmempty = false;
+
+		o = s.option(form.Value, 'dns_cache_memory_limit_mb', _('DNS Cache Limit (MiB)'),
+			_('Maximum in-memory DNS cache size; 0 means unlimited'));
+		o.datatype = 'uinteger';
+		o.default = ((tomlConfig.dns && tomlConfig.dns.cache_memory_limit_mb) || 32).toString();
+		o.placeholder = '32';
+		o.rmempty = false;
+
+		o = s.option(form.Flag, 'dns_enable_0x20', _('DNS 0x20 Protection'),
+			_('Randomize query-name case to reduce cache-poisoning risk'));
+		o.default = ((tomlConfig.dns && tomlConfig.dns.enable_0x20 !== undefined) ? tomlConfig.dns.enable_0x20 : true) ? '1' : '0';
 		o.rmempty = false;
 
 		o = s.option(form.TextValue, 'dns_forwarders', _('DNS Forwarders'), 

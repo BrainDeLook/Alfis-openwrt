@@ -6,6 +6,7 @@ STOP=10
 USE_PROCD=1
 PROG=/usr/bin/alfis
 CONF_FILE=/etc/alfis/alfis.toml
+DEFAULT_DATA_DIR=/opt/alfis
 
 # Make service controllable by /etc/init.d and LuCI
 EXTRA_COMMANDS="status"
@@ -20,7 +21,8 @@ generate_config() {
 	config_load alfis
 	
 	local origin check_blocks net_listen net_public net_yggdrasil_only net_peers
-	local dns_listen dns_threads dns_forwarders dns_bootstraps
+	local dns_listen dns_threads dns_cache_memory_limit_mb dns_enable_0x20
+	local dns_forwarders dns_bootstraps
 	local mining_threads mining_lower
 	
 	# Get configuration values
@@ -34,6 +36,8 @@ peer-v6.alfis.name:4244
 peer-ygg.alfis.name:4244"
 	config_get dns_listen config dns_listen "127.0.0.1:5353"
 	config_get dns_threads config dns_threads "4"
+	config_get dns_cache_memory_limit_mb config dns_cache_memory_limit_mb "32"
+	config_get_bool dns_enable_0x20 config dns_enable_0x20 1
 	config_get dns_forwarders config dns_forwarders "https://dns.adguard.com/dns-query"
 	config_get dns_bootstraps config dns_bootstraps "9.9.9.9:53
 94.140.14.14:53"
@@ -69,6 +73,10 @@ yggdrasil_only = $([ "$net_yggdrasil_only" = "1" ] && echo "true" || echo "false
 listen = "$dns_listen"
 # How many threads to spawn by DNS server
 threads = $dns_threads
+# Maximum DNS cache size in MiB (0 means unlimited)
+cache_memory_limit_mb = $dns_cache_memory_limit_mb
+# DNS 0x20 query-name case randomization
+enable_0x20 = $([ "$dns_enable_0x20" = "1" ] && echo "true" || echo "false")
 # DNS forwarders
 forwarders = [$(echo "$dns_forwarders" | sed 's/^/"/;s/$/",/;$s/,$//' | tr '\n' ' ')]
 
@@ -85,6 +93,48 @@ threads = $mining_threads
 # Set lower priority for mining threads
 lower = $([ "$mining_lower" = "1" ] && echo "true" || echo "false")
 EOF
+
+	chown root:alfis "$CONF_FILE"
+	chmod 640 "$CONF_FILE"
+}
+
+prepare_data_dir() {
+	config_load alfis
+	config_get DATA_DIR config data_dir "$DEFAULT_DATA_DIR"
+
+	# Avoid recursive ownership changes on arbitrary system paths.
+	case "$DATA_DIR" in
+		/opt/*|/mnt/*|/srv/*|/var/lib/*) ;;
+		*) logger -t alfis "Refusing unsafe data_dir: $DATA_DIR"; return 1 ;;
+	esac
+
+	mkdir -p "$DATA_DIR" || return 1
+	chmod 750 "$DATA_DIR"
+	chown alfis:alfis "$DATA_DIR"
+
+	# Migrate databases created by older revisions without replacing a newer DB.
+	if [ ! -e "$DATA_DIR/blockchain.db" ]; then
+		for old_db in /etc/alfis/blockchain.db /var/lib/alfis/blockchain.db; do
+			if [ -f "$old_db" ]; then
+				mv "$old_db" "$DATA_DIR/blockchain.db" || return 1
+				logger -t alfis "Migrated blockchain database from $old_db to $DATA_DIR"
+				break
+			fi
+		done
+	fi
+
+	for old_key in /etc/alfis/key*.toml /var/lib/alfis/key*.toml; do
+		[ -f "$old_key" ] || continue
+		key_name="${old_key##*/}"
+		[ -e "$DATA_DIR/$key_name" ] && continue
+		mv "$old_key" "$DATA_DIR/$key_name" || return 1
+		logger -t alfis "Migrated key file $key_name to $DATA_DIR"
+	done
+
+	for data_file in "$DATA_DIR"/blockchain.db* "$DATA_DIR"/key*.toml; do
+		[ -e "$data_file" ] || continue
+		chown alfis:alfis "$data_file"
+	done
 }
 
 start_service() {
@@ -96,13 +146,10 @@ start_service() {
 	config_get_bool enabled config enabled 0
 	[ "$enabled" -eq 0 ] && return 1
 	
-	# Ensure directories exist and have correct permissions
-	[ -d /var/lib/alfis ] || mkdir -p /var/lib/alfis
-	[ -d /var/lib/alfis/zones ] || mkdir -p /var/lib/alfis/zones
-	chown -R alfis:alfis /var/lib/alfis
+	prepare_data_dir || return 1
 	
 	procd_open_instance
-	procd_set_param command $PROG -c $CONF_FILE -w /etc/alfis
+	procd_set_param command "$PROG" -n -c "$CONF_FILE" -w "$DATA_DIR"
 	procd_set_param respawn 3600 5 5
 	procd_set_param stdout 1
 	procd_set_param stderr 1

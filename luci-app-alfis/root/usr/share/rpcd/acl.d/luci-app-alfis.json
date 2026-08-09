@@ -16,7 +16,8 @@
 				"service": [ "start", "stop", "restart" ]
 			},
 			"file": {
-				"/etc/alfis/alfis.toml": [ "write" ]
+				"/etc/alfis/alfis.toml": [ "write" ],
+				"/etc/init.d/alfis": [ "exec" ]
 			}
 		}
 	}
