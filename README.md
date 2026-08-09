@@ -1,6 +1,9 @@
 # Alfis OpenWRT Packages
 
-This repository contains OpenWRT packages for Alfis - the Alternative Free Identity System.
+This repository contains OpenWrt packages for Alfis - the Alternative Free Identity System.
+
+The package tracks Alfis 0.10.0 and targets OpenWrt 25.12.5, which uses the
+`apk` package format.
 
 ## Packages
 
@@ -57,8 +60,8 @@ make package/luci-app-alfis/compile V=s
 
 ## Installation
 
-1. Install the base package: `opkg install alfis_*.ipk`
-2. Optionally install the web interface: `opkg install luci-app-alfis_*.ipk`
+1. Install the base package: `apk add --allow-untrusted ./alfis-*.apk`
+2. Optionally install the web interface: `apk add --allow-untrusted ./luci-app-alfis-*.apk`
 3. Configure via UCI or LuCI web interface
 4. Enable and start the service: `/etc/init.d/alfis enable && /etc/init.d/alfis start`
 

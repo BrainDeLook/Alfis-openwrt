@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  OPENWRT_VERSION: "24.10.3"
+  OPENWRT_VERSION: "25.12.5"
 
 permissions:
   contents: write
@@ -84,34 +84,10 @@ jobs:
         run: |
           mkdir -p artifacts/${{ matrix.arch.arch }}
           # Only collect alfis packages, not SDK dependencies
-          find openwrt-sdk/bin/packages -name 'alfis_*.ipk' -exec cp {} artifacts/${{ matrix.arch.arch }}/ \;
-          find openwrt-sdk/bin/packages -name 'luci-app-alfis_*.ipk' -exec cp {} artifacts/${{ matrix.arch.arch }}/ \;
-
-      - name: Generate package index and sign
-        env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-        run: |
-          cd artifacts/${{ matrix.arch.arch }}
-          # Create a wrapper for sha256 if it doesn't exist
-          if ! command -v sha256 &> /dev/null; then
-            echo '#!/bin/sh' > /tmp/sha256
-            echo 'sha256sum "$@" | cut -d" " -f1' >> /tmp/sha256
-            chmod +x /tmp/sha256
-            export PATH="/tmp:$PATH"
-          fi
-
-          # Generate package index
-          ../../openwrt-sdk/scripts/ipkg-make-index.sh . > Packages
-          gzip -k Packages
-
-          # Write signing key to temporary file
-          echo "$SIGNING_KEY" > signing.key
-
-          # Sign the package index
-          ../../openwrt-sdk/staging_dir/host/bin/usign -S -m Packages -s signing.key -x Packages.sig
-
-          # Clean up signing key
-          rm signing.key
+          find openwrt-sdk/bin/packages -name 'alfis-*.apk' -exec cp {} artifacts/${{ matrix.arch.arch }}/ \;
+          find openwrt-sdk/bin/packages -name 'luci-app-alfis-*.apk' -exec cp {} artifacts/${{ matrix.arch.arch }}/ \;
+          test -n "$(find artifacts/${{ matrix.arch.arch }} -name 'alfis-*.apk' -print -quit)"
+          test -n "$(find artifacts/${{ matrix.arch.arch }} -name 'luci-app-alfis-*.apk' -print -quit)"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

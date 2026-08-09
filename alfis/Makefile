@@ -1,12 +1,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=alfis
-PKG_VERSION:=0.8.6
+PKG_VERSION:=0.10.0
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/Revertron/Alfis.git
-PKG_SOURCE_VERSION:=4945f18
+PKG_SOURCE_VERSION:=61212e4160ca16ae94564b241b77ab7de8726568
 PKG_MIRROR_HASH:=skip
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
@@ -18,6 +18,8 @@ PKG_MAINTAINER:=HodlOnToYourButts
 PKG_BUILD_DEPENDS:=rust/host
 PKG_BUILD_PARALLEL:=1
 
+RUST_PKG_FEATURES:=doh
+
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/rust/rust-package.mk
 
@@ -26,7 +28,7 @@ define Package/alfis
   CATEGORY:=Network
   TITLE:=Alternative Free Identity System
   URL:=https://github.com/Revertron/Alfis
-  DEPENDS:=+libc +ca-certificates
+  DEPENDS:=$(RUST_ARCH_DEPENDS) +libc +ca-certificates
   USERID:=alfis:alfis
 endef
 
@@ -42,24 +44,9 @@ define Package/alfis/conffiles
 /etc/alfis/alfis.toml
 endef
 
-define Build/Compile
-	cd $(PKG_BUILD_DIR) && \
-	env PATH="$(TOOLCHAIN_DIR)/bin:$$$$PATH" \
-	$(CARGO_PKG_VARS) \
-	CC_aarch64-unknown-linux-musl="$(TARGET_CC_NOCACHE)" \
-	CC_aarch64_unknown_linux_musl="$(TARGET_CC_NOCACHE)" \
-	AR_aarch64-unknown-linux-musl="$(TARGET_AR)" \
-	AR_aarch64_unknown_linux_musl="$(TARGET_AR)" \
-	cargo build \
-		--release \
-		--target $(RUSTC_TARGET_ARCH) \
-		--no-default-features \
-		--features "doh"
-endef
-
 define Package/alfis/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/target/$(RUSTC_TARGET_ARCH)/release/alfis $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/bin/alfis $(1)/usr/bin/
 	
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/alfis.init $(1)/etc/init.d/alfis
