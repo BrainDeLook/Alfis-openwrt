@@ -19,9 +19,14 @@ The main Alfis DNS server package that provides blockchain-based domain resoluti
 **Dependencies:**
 - ca-certificates
 
-The package uses the official Alfis 0.10.0 headless musl binaries and verifies
-their upstream SHA-256 checksums before packaging. Supported package
-architectures are x86_64, aarch64, and ARMv7 hard-float.
+For x86, x86_64, aarch64, ARMv6, and ARMv7, the package uses the official
+Alfis 0.10.0 headless musl binaries and verifies their upstream SHA-256
+checksums before packaging. MIPS and MIPSel are cross-compiled from the pinned
+v0.10.0 source commit without GUI or DoH support.
+
+The primary AArch64 artifact is built with the OpenWrt `armsr/armv8` SDK and
+has the generic `aarch64_generic` package architecture, rather than being tied
+to a specific router SoC target.
 
 ### luci-app-alfis
 Web interface for managing and monitoring the Alfis DNS service through LuCI.

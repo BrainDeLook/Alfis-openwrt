@@ -21,10 +21,18 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - arch: aarch64_cortex-a53
-            target: mediatek/filogic
+          - arch: aarch64_generic
+            target: armsr/armv8
           - arch: arm_cortex-a7_neon-vfpv4
             target: bcm27xx/bcm2709
+          - arch: arm_arm1176jzf-s_vfp
+            target: bcm27xx/bcm2708
+          - arch: i386_pentium4
+            target: x86/generic
+          - arch: mips_24kc
+            target: ath79/generic
+          - arch: mipsel_24kc
+            target: ramips/mt7621
           - arch: x86_64
             target: x86/64
 
