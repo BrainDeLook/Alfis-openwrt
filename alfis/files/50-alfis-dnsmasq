@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Send only Alfis blockchain zones to the local resolver. Normal Internet DNS
+# continues to use the upstream servers already configured in dnsmasq.
+if ! uci -q get 'dhcp.@dnsmasq[0]' >/dev/null 2>&1; then
+	logger -t alfis "dnsmasq UCI section not found; skipping Alfis DNS forwarding"
+	exit 0
+fi
+
+changed=0
+for zone in anon btn conf index merch mirror mob screen srv ygg; do
+	rule="/$zone/127.0.0.1#5353"
+	if ! uci -q show 'dhcp.@dnsmasq[0]' | grep -Fq ".server='$rule'"; then
+		uci add_list "dhcp.@dnsmasq[0].server=$rule"
+		changed=1
+	fi
+done
+
+if [ "$changed" -eq 1 ]; then
+	uci commit dhcp
+	logger -t alfis "Configured dnsmasq forwarding for Alfis blockchain zones"
+	[ ! -x /etc/init.d/dnsmasq ] || /etc/init.d/dnsmasq reload || true
+fi
+
+exit 0

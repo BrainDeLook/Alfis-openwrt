@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=alfis
 PKG_VERSION:=0.10.0
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 
 ifeq ($(ARCH),aarch64)
   ALFIS_RELEASE_ARCH:=arm64
@@ -102,6 +102,9 @@ define Package/alfis/install
 	
 	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
 	$(INSTALL_DATA) ./files/alfis.keep $(1)/lib/upgrade/keep.d/alfis
+
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/50-alfis-dnsmasq $(1)/etc/uci-defaults/50-alfis-dnsmasq
 endef
 
 define Package/alfis/postinst
@@ -113,8 +116,31 @@ define Package/alfis/postinst
 	# The blockchain lives outside /tmp so it survives service and router restarts.
 	[ -d /opt/alfis ] || mkdir -p /opt/alfis
 	chown alfis:alfis /opt/alfis && chmod 750 /opt/alfis
-	exit 0
+	# Configure split DNS immediately during a live install. ImageBuilder installs
+	# keep the uci-defaults script so the same setup runs on first boot.
+	if [ -x /etc/uci-defaults/50-alfis-dnsmasq ]; then
+		/etc/uci-defaults/50-alfis-dnsmasq && rm -f /etc/uci-defaults/50-alfis-dnsmasq
+	fi
 }
+exit 0
+endef
+
+define Package/alfis/prerm
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	changed=0
+	for zone in anon btn conf index merch mirror mob screen srv ygg; do
+		rule="/$$zone/127.0.0.1#5353"
+		if uci -q del_list "dhcp.@dnsmasq[0].server=$$rule"; then
+			changed=1
+		fi
+	done
+	if [ "$$changed" -eq 1 ]; then
+		uci commit dhcp
+		[ ! -x /etc/init.d/dnsmasq ] || /etc/init.d/dnsmasq reload || true
+	fi
+}
+exit 0
 endef
 
 $(eval $(call BuildPackage,alfis))

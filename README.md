@@ -73,6 +73,11 @@ wget -O /tmp/install-alfis.sh https://raw.githubusercontent.com/BrainDeLook/Alfi
 sh /tmp/install-alfis.sh
 ```
 
+The package configures split DNS automatically: dnsmasq forwards all ten Alfis
+blockchain zones to `127.0.0.1#5353`, while ordinary Internet domains continue
+to use the router's existing upstream DNS servers. Reinstalling or upgrading
+the package does not create duplicate forwarding rules.
+
 The release tag can be overridden when testing another package revision:
 
 ```sh
