@@ -33,9 +33,9 @@ Web interface for managing and monitoring the Alfis DNS service through LuCI.
 
 **Features:**
 - Enable/disable Alfis service
-- Configure DNS and API ports
-- Set logging levels
-- Manage bootstrap nodes
+- Configure the persistent database directory
+- Configure P2P, DNS, forwarders, and bootstrap nodes
+- Configure DNS cache, DNS 0x20 protection, and mining
 - View service status
 
 **Dependencies:**
@@ -62,10 +62,31 @@ make package/luci-app-alfis/compile V=s
 
 ## Installation
 
-1. Install the base package: `apk add --allow-untrusted ./alfis-*.apk`
-2. Optionally install the web interface: `apk add --allow-untrusted ./luci-app-alfis-*.apk`
-3. Configure via UCI or LuCI web interface
-4. Enable and start the service: `/etc/init.d/alfis enable && /etc/init.d/alfis start`
+### Automatic installer
+
+Run as `root` on OpenWrt 25.12.5. The installer detects the package
+architecture, downloads both Alfis and LuCI, installs them, and starts the
+service:
+
+```sh
+wget -O /tmp/install-alfis.sh https://raw.githubusercontent.com/BrainDeLook/Alfis-openwrt/master/install.sh
+sh /tmp/install-alfis.sh
+```
+
+The release tag can be overridden when testing another package revision:
+
+```sh
+ALFIS_RELEASE_TAG='alfis-0.10.0-openwrt-25.12.5-r3' sh /tmp/install-alfis.sh
+```
+
+After installation, open **Services -> Alfis DNS** in LuCI.
+
+### Manual installation
+
+1. Download the archive matching `apk --print-arch` from the GitHub release.
+2. Extract the archive on the router.
+3. Install both packages: `apk add --allow-untrusted ./alfis-*.apk ./luci-app-alfis-*.apk`.
+4. Enable and start the service: `/etc/init.d/alfis enable && /etc/init.d/alfis restart`.
 
 The blockchain database and key files are stored in `/opt/alfis` by default.
 This directory survives service and router restarts and is listed in
@@ -77,12 +98,16 @@ with the `data_dir` UCI/LuCI option to persistent storage under `/opt`, `/mnt`,
 
 ### UCI Configuration (`/etc/config/alfis`):
 - `enabled`: Enable/disable service (0/1)
-- `listen_dns`: DNS server port (default: 53)
-- `listen_http`: HTTP API port (default: 8080)  
-- `max_peers`: Maximum P2P peers (default: 32)
-- `debug_level`: Log level (error/warn/info/debug/trace)
-- `bootstrap_nodes`: List of initial nodes to connect to
-- `zones`: Supported blockchain DNS zones
+- `data_dir`: Persistent database and key directory (default: `/opt/alfis`)
+- `net_listen`: P2P listen address (default: `[::]:4244`)
+- `net_peers`: Initial P2P peers
+- `dns_listen`: DNS listen address (default: `127.0.0.1:5353`)
+- `dns_threads`: DNS worker threads
+- `dns_cache_memory_limit_mb`: In-memory DNS cache limit
+- `dns_enable_0x20`: DNS query-name case randomization
+- `dns_forwarders`: Upstream DNS-over-HTTPS resolvers
+- `dns_bootstraps`: Bootstrap DNS servers
+- `mining_threads`: Mining worker threads (`0` uses the available CPU cores)
 
 ### File Locations:
 - Configuration: `/etc/alfis/alfis.toml`
