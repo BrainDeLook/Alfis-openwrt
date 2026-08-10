@@ -3,7 +3,7 @@
 set -eu
 
 REPOSITORY="BrainDeLook/Alfis-openwrt"
-RELEASE_TAG="${ALFIS_RELEASE_TAG:-alfis-0.10.0-openwrt-25.12.5-r3}"
+RELEASE_TAG="${ALFIS_RELEASE_TAG:-alfis-0.10.0-openwrt-25.12.5-r4}"
 BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 TMP_DIR=""
 

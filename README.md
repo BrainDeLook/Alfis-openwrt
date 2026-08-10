@@ -81,7 +81,7 @@ the package does not create duplicate forwarding rules.
 The release tag can be overridden when testing another package revision:
 
 ```sh
-ALFIS_RELEASE_TAG='alfis-0.10.0-openwrt-25.12.5-r3' sh /tmp/install-alfis.sh
+ALFIS_RELEASE_TAG='alfis-0.10.0-openwrt-25.12.5-r4' sh /tmp/install-alfis.sh
 ```
 
 After installation, open **Services -> Alfis DNS** in LuCI.
